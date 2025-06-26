@@ -131,13 +131,5 @@ sudo chown apache:apache /var/www/html/ -R
 --WebブラウザからWordPressセットアップ
 アクセス: http://<WebサーバーのパブリックIP>
 
-入力内容:
-
-項目	入力値
-データベース名	dbinstance
-ユーザー名	postgres
-パスワード	postgres1234
-DBホスト	rdsのエンドポイント
-テーブル接頭辞	wp_
 
 「送信」→「WordPressのインストール」
