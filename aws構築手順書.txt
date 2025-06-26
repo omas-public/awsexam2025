@@ -1,0 +1,89 @@
+1,まずVPCを作る
+   名前：my-vpc-626
+	 CIDRブロック：192.168.10.0/24
+
+2,サブネットを作る
+   名前＆アドレス
+	    my-public-subnet626-1a : 192.168.10.0/26
+			my-private-subnet626-1a : 192.168.10.128/26
+			my-public-subnet626-1c : 192.168.10.64/26
+      my-private-subnet626-1c : 192.168.10.192/26
+
+3,ルートテーブル
+   my-public-subnet626-1aとmy-public-subnet626-1c → public-route626
+	 my-private-subnet626-1a → private-route626-1a
+   my-private-subnet626-1c → private-route626-1c
+このように作る
+
+4,Internet Gatewayを作る
+
+5,インスタンスを作る
+   名前：my-humidai626
+	 ネットワーク設定：
+	    先程作ったVPCを選択：my-vpc-626
+			サブネット：my-public-subnet626-1c
+			publicIP有効化
+			セキュリティーグループ作成：
+			   名前：my-humidai-626 説明：ssh
+				 ssh 0.0.0.0/0
+		  高度なネットワーク設定：
+			  プライマリIP：192.168.10.68
+	
+   名前：my-web626
+	 ネットワーク設定：
+	    ここは上と同じ
+			セキュリティグループ作成：
+			   名前：my-web-626 説明：ssh http
+				 ssh 192.168.10.68/32
+				 http 0.0.0.0/0
+		 高度なネットワーク設定：
+		   プライマリIP：192.168.10.69
+
+7,RDSを作る
+   MariaDBを選択
+   名前：db-instance-626
+	 パスワード設定
+
+	 接続：
+	    EC2のコンピューティングリソース接続を選択
+			WEBのインスタンスを選ぶ
+
+	 セキュリティグループは新規
+	 名前：db-626
+
+	 追加設定
+	 最初のデータベースの名前：wordpress
+
+   作成後
+	 セキュリティグループのインバウンドがpubliになってないか確認
+	 なっている場合は
+	 EC2のmy-web626のprivateIP似合わせる192.168.10.69
+
+
+まず踏み台に行けるか確認する
+行けたら、一回exitしてローカル戻る
+パスワードをhumidaiに持っていく！
+
+持っていくことが出来たら
+humidaiに入ってWEBに入る
+
+入ったら
+sudo dnf -y install httpd
+
+sudo systemctl start httpd.service
+sudo systemctl enable httpd.service
+
+sudo dnf -y install php8.1 php8.1-mbstring php-mysqli
+
+wget https://ja.wordpress.org/latest-ja.tar.gz
+tar xzvf latest-ja.tar.gz
+
+wordprssに入り
+sudo cp -r * /var/www/html/
+sudo chown apache:apache /var/www/html -R
+
+最後にリスタートしてあげて
+sudo systemctl restart httpd
+
+EC２のインスタンスのWEBでオープンアドレスをすればできる！！！！
+
