@@ -1,0 +1,135 @@
+手順書：AWS構築
+--VPCを作成
+VPC名: VPC
+
+CIDRブロック: 192.168.10.0/24
+
+Public Subnet 1: 192.168.10.0/27（踏み台サーバ用）
+Private Subnet 1: 192.168.10.32/27（RDS用）
+Public Subnet 2: 192.168.10.96/27（Webサーバ用）
+Private Subnet 2: 192.168.10.128/27（RDS用）
+--インターネットゲートウェイの作成とアタッチ
+名前: internet-gateway
+アクション →「VPCへアタッチ」→ Webサーバーにアタッチ
+
+--ルートテーブルの作成と関連付け
+Public Route Table
+名前: public-route-table
+
+ルート:
+
+0.0.0.0/0 → Internet Gateway
+
+192.168.0.0/16 → local
+
+
+Private Route Table
+名前: private-route-table
+
+ルート:
+
+192.168.0.0/16 → local
+
+
+--EC2インスタンス作成とセキュリティグループ設定
+Springboard Server（踏み台）
+インスタンス名: springboard-server
+
+VPC: vpc
+
+サブネット: public-subnet
+
+パブリックIP: 有効
+
+セキュリティグループ名: springboard-server-sg
+
+インバウンドルール:
+
+タイプ: SSH
+
+ソース: 0.0.0.0/0
+
+プライマリIPアドレス: 192.168.10.5
+
+Web Server
+インスタンス名: web-server
+
+VPC: vpc
+
+サブネット: public-subnet
+
+パブリックIP: 有効
+
+セキュリティグループ名: web-server-sg
+
+インバウンドルール:
+
+タイプ: HTTP、ソース: 0.0.0.0/0
+
+タイプ: SSH、ソース: 192.168.10.5/32
+
+プライマリIPアドレス: 192.168.10.120
+
+DB Server
+インスタンス名: db-server
+
+VPC: vpc
+
+サブネット: private-subnet
+
+パブリックIP: 無効
+
+セキュリティグループ名: db-server-sg
+
+インバウンドルール:
+
+タイプ: SSH、ソース: 192.168.10.5/32
+
+タイプ: MySQL/Aurora、ソース: 192.168.10.120/32
+
+プライマリIPアドレス: 192.168.10.60
+
+--踏み台サーバー（springboard-server）からSSH接続確認
+web-server、db-server へのSSH接続ができることを確認
+
+--データベース（RDS）作成
+エンジン: MariaDB
+
+マスターユーザー名: postgres
+
+マスターパスワード: postgres1234
+
+DBインスタンス識別子: dbinstance
+
+セキュリティグループ: db-server-sg
+
+VPC: vpc
+
+パブリックアクセス: 無効
+
+--WebサーバーにSSH接続しApache/WordPressインストール
+bash
+コピーする
+編集する
+# Apacheインストール
+sudo dnf -y install httpd
+sudo systemctl start httpd.service
+sudo systemctl enable httpd.service
+
+# PHPインストール
+sudo dnf -y install php8.1 php8.1-mbstring php-mysqli
+
+# WordPressダウンロード・展開
+cd ~
+wget https://ja.wordpress.org/latest-ja.tar.gz
+tar xzvf latest-ja.tar.gz
+
+# WordPressファイルをApache公開ディレクトリへ配置
+cd wordpress
+sudo cp -r * /var/www/html/
+sudo chown apache:apache /var/www/html/ -R
+--WebブラウザからWordPressセットアップ
+アクセス: http://<WebサーバーのパブリックIP>
+
+
+「送信」→「WordPressのインストール」
