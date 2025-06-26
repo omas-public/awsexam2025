@@ -1,0 +1,120 @@
+VPC手順書
+
+1.VPC設計
+ VPCを作成→ 名前:VPC_ryouiki
+ CIDR:10.0.0. /に設定する
+
+2.Subnet設計
+ サブネットを作成→ VPC_ryouikiを選択
+ Subnet名:public_subnet
+ CIDR:10.0.0.0/
+ サブネットを作成→ VPCryouikiを選択
+ Subnet名:praivate_subnet
+ CIDR:10.0.0.0/
+
+3.インターネットゲートウェイ
+ インターネットゲートウェイの作成
+ 名前:test-internet-gateway
+ アタッチ先:VPC_ryouiki
+
+4. Route Table設計
+ 名前:public_routetable
+ VPC_ryouikiを選択
+ public_routetableを選択→ ルート→ ルートを編集 送信先:0.0.0.0/0
+ ターゲット:test-internet-gateway
+ サブネットの関連付け:public_subnet
+
+ 名前: private_routetable
+ VPC_ryouikiを選択
+ private_routetableを選択→ ルート→ ルートを編集 送信先:0.0.0.0/0
+ ターゲット:NAT Gateway
+ サブネット関連付け:private_subnet
+
+5. IPアドレス割り当て
+ 踏み台サーバ   public_subnet      10.0.0.10
+ Webサーバ      public_subnet      10.0.0.11
+ DBサーバ       private_subnet     10.0.0.130
+ (RDS)
+6. Security Group設計
+ 踏み台サーバ  22    SSH      0.0.0.0/0
+
+ Webサーバ　   80    HTTP     0.0.0.0/0
+               22    SSH      10.0.0.10/32
+
+ DBサーバ      3306  MySQL    10.0.0.11/32
+(RDS)          22    SSH      10.0.0.10/32
+               ICMP  ping     0.0.0.0/0
+
+ 踏み台へSSHログイン確認
+- ssh -i my.key-pem ec2-user@ec2~~~~~~.com 接続できればOK
+
+ 秘密鍵を踏み台サーバへ転送 (ローカル上で実行)
+- scp -i my-key.pem my-key.pem ec2-user@ec2~~~~.com:~/
+
+ Public subnetにwebサーバ作成
+
+ 踏み台サーバからwebにログインしてwwwサーバーインストール　php,db関連インストール
+- ssh -i my-key.pem ec2-user@10.0.1.11
+	     
+ 踏み台からログインしてインストール
+- sudo dnf -y install mariadb105-server
+	   
+- sudo systemctl start mariadb
+
+- sudo mysql_secure_installation
+	 
+- mysql -u root -p
+
+- CREATE DATABASE wordpress  DEFAULT CHARACTER SET utf8 COLLATE utf8_general_ci;
+
+- grant all on wordpress.* to wordpress@"%" identified by 'wordpresspasswd';
+	   
+- sudo systemctl enable mariadb
+	   
+ webサーバーにログインwordpressのインストール
+- sudo dnf -y install php8.1
+	   
+- sudo dnf -y install php8.1-mbstring php-mysqli
+	   
+- sudo dnf -y install mariadb105-server
+   
+- mysql -h 10.0.2.10 -u wordpress -p  exit
+
+- password -> wordpresspasswd
+
+- cd ~
+   
+- wget https://ja.wordpress.org/latest-ja.tar.gz
+   
+- tar xzvf latest-ja.tar.gz
+   
+- cd wordpress
+  
+- sudo cp -r * /var/www/html/
+   
+- sudo chown apache:apache /var/www/html -R
+   
+ wordpress設定
+
+- sudo systemctl start httpd
+ 	 
+ public IPアドレスにアクセス
+
+wordpress
+
+- 説明文が表示されます。「さあ、始めましょう！」をクリック
+- データベース wordpresspasswd
+- ユーザー名 wordpress
+- パスワード wordpresspasswd
+- データベースのホスト名 例:10.0.2.10
+- テーブル接頭辞 wp_(デフォルトのまま)
+- インストールの実行をクリック
+- サイトのタイトル AWSで学ぶネットワーク入門
+- ユーザー名 admin
+- パスワード 
+- メールアドレス aws@example.co.jp
+
+WordPressへようこそが表示されでばOK!
+
+ 完了
+    
